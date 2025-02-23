@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3 uid="uid://cbrebhfxnyybx"]
+
+[ext_resource type="FontFile" uid="uid://bcribyv0jgxjo" path="res://fonts/DisposableDroidBB_bld.ttf" id="1_i7pyg"]
+
+[node name="BaseButton" type="Button"]
+texture_filter = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -15.5
+offset_right = 16.0
+offset_bottom = 15.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_fonts/font = ExtResource("1_i7pyg")
+theme_override_font_sizes/font_size = 38
+text = "BUTTON"
+flat = true

@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://o272j65uy8bx"]
+
+[ext_resource type="PackedScene" uid="uid://cbrebhfxnyybx" path="res://scenes/base_button.tscn" id="1_603jh"]
+[ext_resource type="Script" path="res://scripts/toggle_button.gd" id="2_uaj1w"]
+
+[node name="ToggleButton" instance=ExtResource("1_603jh")]
+custom_minimum_size = Vector2(300, 0)
+alignment = 2
+script = ExtResource("2_uaj1w")

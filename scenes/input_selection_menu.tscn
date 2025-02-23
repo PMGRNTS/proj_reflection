@@ -1,0 +1,61 @@
+[gd_scene load_steps=5 format=3 uid="uid://ehnlewjlvqun"]
+
+[ext_resource type="Script" path="res://scripts/input_selection_menu.gd" id="1_2wmgy"]
+[ext_resource type="PackedScene" uid="uid://bj8c65t2bnxt5" path="res://scenes/base_label.tscn" id="1_v5res"]
+[ext_resource type="PackedScene" uid="uid://o272j65uy8bx" path="res://scenes/toggle_button.tscn" id="2_0mhpg"]
+[ext_resource type="PackedScene" uid="uid://cbrebhfxnyybx" path="res://scenes/base_button.tscn" id="3_g6gkf"]
+
+[node name="InputSelectionMenu" type="Control"]
+texture_filter = 1
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_2wmgy")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+
+[node name="BaseLabel" parent="CenterContainer/VBoxContainer" instance=ExtResource("1_v5res")]
+layout_mode = 2
+theme_override_font_sizes/font_size = 39
+text = "SELECT INPUT"
+horizontal_alignment = 1
+
+[node name="Player1" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Player1" parent="CenterContainer/VBoxContainer/Player1" instance=ExtResource("1_v5res")]
+layout_mode = 2
+text = "PLAYER 1"
+
+[node name="InputToggle" parent="CenterContainer/VBoxContainer/Player1" instance=ExtResource("2_0mhpg")]
+unique_name_in_owner = true
+layout_mode = 2
+text = "CONTROLLER"
+
+[node name="Player2" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Player2" parent="CenterContainer/VBoxContainer/Player2" instance=ExtResource("1_v5res")]
+layout_mode = 2
+text = "PLAYER 2"
+
+[node name="InputToggle2" parent="CenterContainer/VBoxContainer/Player2" instance=ExtResource("2_0mhpg")]
+unique_name_in_owner = true
+layout_mode = 2
+text = "CONTROLLER"
+
+[node name="Confirm" parent="CenterContainer/VBoxContainer" instance=ExtResource("3_g6gkf")]
+layout_mode = 2
+text = "CONFIRM"

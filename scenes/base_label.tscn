@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://bj8c65t2bnxt5"]
+
+[ext_resource type="FontFile" uid="uid://bcribyv0jgxjo" path="res://fonts/DisposableDroidBB_bld.ttf" id="1_2gfua"]
+
+[sub_resource type="Theme" id="Theme_o2q4a"]
+default_font = ExtResource("1_2gfua")
+
+[node name="BaseLabel" type="Label"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_o2q4a")
