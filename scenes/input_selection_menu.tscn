@@ -57,5 +57,8 @@ layout_mode = 2
 text = "CONTROLLER"
 
 [node name="Confirm" parent="CenterContainer/VBoxContainer" instance=ExtResource("3_g6gkf")]
+unique_name_in_owner = true
 layout_mode = 2
 text = "CONFIRM"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Confirm" to="." method="_on_confirm_pressed"]

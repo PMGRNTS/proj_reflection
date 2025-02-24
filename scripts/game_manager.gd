@@ -45,6 +45,10 @@ func _ready():
 	_show_main_menu()
 
 func start_game() -> void:
+	print("GameManager - Starting game with input settings:")
+	print("  P1 keyboard setting: ", p1_using_keyboard)
+	print("  P2 keyboard setting: ", p2_using_keyboard)
+	
 	# Hide all menus
 	loading_screen.hide()
 	main_menu.hide()
@@ -55,13 +59,18 @@ func start_game() -> void:
 	current_scene_name = "game"
 	player_scores = [0, 0]
 	
-	# Initialize players with their input preferences
-	var players = get_tree().get_nodes_in_group("player")
-	for player in players:
-		if player.player_index == 0:
-			player.using_keyboard = p1_using_keyboard
-		else:
-			player.using_keyboard = p2_using_keyboard
+	#Initialize input preferences
+	InputManager.register_player(
+		0, 
+		InputManager.InputDevice.KEYBOARD if p1_using_keyboard else InputManager.InputDevice.CONTROLLER,
+		0 if not p1_using_keyboard else -1
+	)
+	
+	InputManager.register_player(
+		1,
+		InputManager.InputDevice.KEYBOARD if p2_using_keyboard else InputManager.InputDevice.CONTROLLER,
+		0 if not p2_using_keyboard else -1
+	)
 	
 	# Reset players to starting positions
 	players_manager.reset_players()

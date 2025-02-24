@@ -53,3 +53,7 @@ func confirm_selection():
 		p1_toggle.get_state() == "keyboard",
 		p2_toggle.get_state() == "keyboard")
 	hide()
+
+
+func _on_confirm_pressed() -> void:
+	pass # Replace with function body.

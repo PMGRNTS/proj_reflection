@@ -20,12 +20,14 @@ boot_splash/minimum_display_time=200
 [autoload]
 
 GameManager="*res://scripts/game_manager.gd"
+InputManager="*res://scripts/input_manager.gd"
 
 [display]
 
 window/size/viewport_width=720
 window/size/viewport_height=720
 window/size/always_on_top=true
+window/stretch/mode="canvas_items"
 
 [global_group]
 
