@@ -4,13 +4,13 @@ signal player_hit(player_index: int)
 
 # Exported Variables
 @export var player_color := Color("4b9cff") # Default blue for P1
-@export var max_hp = 150
+
 @export var speed = 200
 @export var accel = 1300
-@export var dash_speed = 2000
-@export var dash_duration = 0.08
-@export var dash_cooldown_time = 1.0
-@export var dash_distance := 150.0  # Distance to dash in pixels
+@export var dash_speed = 1200  # Reduced for better control
+@export var dash_duration = 0.2  # Increased slightly for more noticeable effect
+@export var dash_cooldown_time = 0.8  # Reduced to make dash feel more responsive
+@export var dash_distance := 200.0  # Increased to make dash more impactful
 @export var controller_aim_speed := 5.0  # Speed multiplier for controller aim rotation
 @export var player_index := 0  # 0 for P1, 1 for P2
 @export var trail_length := 20  # More points = longer trail
@@ -22,18 +22,19 @@ signal player_hit(player_index: int)
 @export var fire_rate := 0.75  # Time between shots in seconds
 
 # Regular Variables
-var using_keyboard := false
 var debug_ray_line: Line2D  # To visualize raycast direction
-var current_hp = max_hp
-var look_direction = Vector2.ZERO
+var look_direction = Vector2.RIGHT  # Default look direction
+var last_aim_direction = Vector2.RIGHT  # Store last valid aim
 var is_dashing = false
 var can_dash = true
 var dash_target := Vector2.ZERO
-var aim_angle := 0.0  # Track rotation angle for controller aim
+
 var can_fire := true
 var time_passed := 0.0  # Used for our sine wave effect
 var trail_points: Array[Vector2] = []
 var laser_line: Line2D
+
+var hit_freeze_frames := 0
 
 # Onready Variables (Node References)
 @onready var dash_dur = $DashDur
@@ -60,6 +61,7 @@ var input_suffix: String:
 func _ready():
 	await get_tree().process_frame
 	
+	print("\n=== Player ", player_index, " Initialization ===")
 	# Now set up with correct index
 	if player_index == 0:
 		player_color = Color("4b9cff")  # P1 is blue
@@ -67,11 +69,10 @@ func _ready():
 		player_color = Color("ff4b4b")  # P2 is red
 	
 	print("Player ", player_index, " initialized with index-specific settings")
-	print("Using keyboard: ", using_keyboard)
 	print("Input suffix: ", input_suffix)
 	print("Player", player_index, "color set to:", player_color)
-	print("Player ", player_index, " initialized with keyboard: ", using_keyboard)
 	print("Available controllers: ", Input.get_connected_joypads())
+	
 	# Add debug raycast line
 	debug_ray_line = Line2D.new()
 	add_child(debug_ray_line)
@@ -108,20 +109,23 @@ func _ready():
 	# Setup laser line with player color
 	laser_line = Line2D.new()
 	add_child(laser_line)
-	laser_line.width = 2.0
+	laser_line.width = 6.0
 	laser_line.default_color = player_color  # Use player's color for laser
 	
 	# Setup raycast for laser
 	laser_raycast.target_position = Vector2.RIGHT * laser_range
 	laser_raycast.collision_mask = 1  # Adjust based on your collision layers
 	
-	# Debug print to verify setup
-	print("Player ", player_index, " using keyboard: ", using_keyboard, " color: ", player_color)
-
+	print("=== Player ", player_index, " Setup Complete ===")
+	print("Initial position:", global_position)
+	print("Initial look direction:", look_direction)
+	print("\n")
 	
-func _process(delta):
-	time_passed += delta * 10.0
+
+func _process(_delta):
+	time_passed += _delta * 10.0
 	debug_ray_line.rotation = reflect_area.rotation
+	
 	# Update trail positions
 	trail_points.pop_back()
 	trail_points.push_front(global_position)
@@ -129,16 +133,9 @@ func _process(delta):
 	# Update both trails with current positions
 	main_trail.clear_points()
 	shadow_trail.clear_points()
-	
-	# Input handling - simplified and more explicit
-	if using_keyboard:
-		# Mouse aim for keyboard player
-		look_direction = (get_global_mouse_position() - position).normalized()
-		reflect_area.look_at(get_global_mouse_position())
-	else:
-		# Controller aim
-		_handle_controller_aim(delta)
-
+	if hit_freeze_frames > 0:
+		hit_freeze_frames -= 1
+		return
 		
 	# Add points with a slight offset for shadow trail
 	for i in trail_points.size():
@@ -147,75 +144,21 @@ func _process(delta):
 		main_trail.add_point(local_point)
 		# Offset shadow trail slightly based on movement
 		shadow_trail.add_point(local_point + velocity.normalized() * -4)
-
 		
 	# Make trails more pronounced during dash
 	if is_dashing:
-		main_trail.width = trail_width * 1.5
-		shadow_trail.width = trail_width * 2
-		main_trail.default_color = Color(1, 1, 1, 0.9)  # Brighter white
-		shadow_trail.default_color = Color(0.4, 0.6, 1.0, 0.6)  # Brighter blue
-
+		main_trail.width = trail_width * 2.5  # Much wider during dash
+		shadow_trail.width = trail_width * 3.5  # Much wider shadow
+		main_trail.default_color = Color(1, 1, 1, 1.0)  # Pure white, fully opaque
+		shadow_trail.default_color = player_color.lightened(0.3)  # Brighter player color
 	else:
 		main_trail.width = trail_width
-		shadow_trail.width = trail_width * 2.5
+		shadow_trail.width = trail_width * 1.5
 		main_trail.default_color = trail_color
 		shadow_trail.default_color = shadow_color
 
-func _physics_process(delta: float) -> void:
-	# Handle movement
-	velocity = InputManager.get_movement(player_index) * speed
-	move_and_slide()
-	
-	# Get the player's input configuration
-	var config = InputManager.player_configs.get(player_index)
-	if not config:
-		return
-		
-	# Handle aim based on input device
-	var aim_direction: Vector2
-	if config.device == InputManager.InputDevice.KEYBOARD:
-		aim_direction = InputManager.get_keyboard_aim(player_index, global_position)
-	else:
-		aim_direction = InputManager.get_controller_aim(player_index)
-	
-	# Only update aim if we got valid input
-	if aim_direction != Vector2.ZERO:
-		look_direction = aim_direction
-		reflect_area.rotation = aim_direction.angle()
-	
-	if is_dashing:
-		var distance_to_target = global_position.distance_to(dash_target)
-		if distance_to_target > 5:
-			velocity = global_position.direction_to(dash_target) * dash_speed
-		else:
-			is_dashing = false
-			velocity = Vector2.ZERO
-			global_position = dash_target
-
-
-func get_input_axis() -> Vector2:
-	var axis = Vector2.ZERO
-	
-	if using_keyboard:
-		# Keyboard movement
-		axis.x = int(Input.is_action_pressed("right" + input_suffix)) - int(Input.is_action_pressed("left" + input_suffix))
-		axis.y = int(Input.is_action_pressed("down" + input_suffix)) - int(Input.is_action_pressed("up" + input_suffix))
-	else:
-		# Controller movement
-		# Get the first connected controller if we're player 2, or second if we're player 1 using controller
-		var controller_id = player_index
-		if Input.get_connected_joypads().size() > controller_id:
-			axis = Vector2(
-				Input.get_joy_axis(Input.get_connected_joypads()[controller_id], JOY_AXIS_LEFT_X),
-				Input.get_joy_axis(Input.get_connected_joypads()[controller_id], JOY_AXIS_LEFT_Y)
-			)
-		# Apply deadzone
-		if axis.length() < 0.2:
-			axis = Vector2.ZERO
-	return axis
-
 func _setup_trails():
+	print("Setting up trails for Player ", player_index)
 	# Set up main white trail
 	main_trail.width = trail_width
 	main_trail.width_curve = _create_width_curve()
@@ -230,82 +173,103 @@ func _setup_trails():
 	shadow_trail.joint_mode = Line2D.LINE_JOINT_ROUND
 	shadow_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	shadow_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
-
-func _handle_controller_aim(delta: float) -> void:
-	# Get right stick input
-	var aim_input := Vector2(
-		Input.get_joy_axis(player_index, JOY_AXIS_RIGHT_X),
-		Input.get_joy_axis(player_index, JOY_AXIS_RIGHT_Y)
-	)
-	
-	# Apply deadzone
-	if aim_input.length() < 0.2:
-		return
-	
-	# Update aim angle based on stick input
-	aim_angle = aim_input.angle()
-	reflect_area.rotation = aim_angle
-	look_direction = Vector2.RIGHT.rotated(aim_angle)
-
+	print("Trail setup complete - Main trail width:", trail_width, " Shadow trail width:", trail_width * 1.5)
 
 func start_dash():
 	if can_dash:
 		dash_target = global_position + (look_direction * dash_distance)
+		print("\n=== Player ", player_index, " Dash Started ===")
+		print("Starting position:", global_position)
+		print("Dash target:", dash_target)
+		print("Look direction:", look_direction)
+		print("Dash distance:", dash_distance)
 		is_dashing = true
 		can_dash = false
 		dash_cooldown.start()
-		# Add the duration timer back
 		dash_dur.start()
 
+func _physics_process(delta: float) -> void:
+	if is_dashing:
+		# Use look_direction directly for consistent dash direction
+		velocity = look_direction * dash_speed
+		move_and_slide()
+		
+		var distance_to_target = global_position.distance_to(dash_target)
+		print("Player ", player_index, " dashing - Distance to target:", distance_to_target, " Current velocity:", velocity)
+		
+		if distance_to_target <= 5:
+			print("Player ", player_index, " dash complete at position:", global_position)
+			is_dashing = false
+			velocity = Vector2.ZERO
+			global_position = dash_target
+	else:
+		# Handle regular movement
+		var raw_movement = InputManager.get_movement(player_index)
+		velocity = raw_movement * speed
+		move_and_slide()
+	
+	var new_aim = InputManager.get_aim(player_index, global_position)
+	if new_aim.length_squared() > 0.04:  # Using squared length for efficiency
+		last_aim_direction = new_aim
+		look_direction = new_aim
+		var new_rotation = new_aim.angle()
+		reflect_area.rotation = new_rotation
+		laser_raycast.rotation = new_rotation  # Keep raycast aligned with aim direction
+		#print("Player ", player_index, " aim updated - Direction:", new_aim, " Rotation:", new_rotation)
 
-func _input(event):
-	# Handle both controller and keyboard/mouse input for actions
-	if (event.is_action_pressed("dash" + input_suffix) or 
-		(event is InputEventJoypadButton and 
-		event.button_index == JOY_BUTTON_RIGHT_SHOULDER and
-		event.pressed and 
-		event.device == player_index)) and can_dash:
+	# Check for dash input
+	if InputManager.is_dash_pressed(player_index) and can_dash:
 		start_dash()
-	elif (event.is_action_pressed("reflect" + input_suffix) or
-		(event is InputEventJoypadButton and 
-		event.button_index == JOY_BUTTON_LEFT_SHOULDER and
-		event.pressed and 
-		event.device == player_index)):
+	
+
+func _input(event: InputEvent) -> void:
+	# Handle non-movement input events
+	if event.is_action_pressed("reflect" + input_suffix):
+		print("\n=== Player ", player_index, " Reflection Started ===")
+		print("Reflection rotation:", reflect_area.rotation)
+		print("Player position:", global_position)
 		$ReflectArea/Hitbox.disabled = false
 		$ReflectArea/Sprite.visible = true
 		await get_tree().create_timer(0.2).timeout
 		$ReflectArea/Hitbox.disabled = true
 		$ReflectArea/Sprite.visible = false
-	elif (event.is_action_pressed("fire" + input_suffix) or
-		(event is InputEventJoypadButton and 
-		event.button_index == JOY_BUTTON_A and  # A/Cross button for firing
-		event.pressed and 
-		event.device == player_index)):
+		print("Player ", player_index, " reflection ended")
+	elif event.is_action_pressed("fire" + input_suffix):
+		print("\n=== Player ", player_index, " Fire Attempt ===")
 		fire_laser()
 
 func _on_dash_cooldown_timeout():
 	can_dash = true
+	print("Player ", player_index, " dash cooldown complete - Can dash again")
 
 func _on_dash_dur_timeout() -> void:
-	is_dashing = false
-	velocity = Vector2.ZERO
-
-
+	# Only end dash if we haven't reached target yet
+	if is_dashing and global_position.distance_to(dash_target) > 5:
+		is_dashing = false
+		velocity = Vector2.ZERO
+		print("Player ", player_index, " dash duration ended")
 
 func fire_laser():
 	if !can_fire:
+		print("Player ", player_index, " attempted to fire but on cooldown")
 		return
 		
+	print("\n=== Player ", player_index, " Firing Laser ===")
 	can_fire = false
 	fire_cooldown.start()
 	
 	# Update raycast direction and visualize it
-	laser_raycast.rotation = reflect_area.rotation
+	#laser_raycast.rotation = reflect_area.rotation
 	laser_line.clear_points()
 	laser_line.add_point(Vector2.ZERO)
 	
-	print("Firing laser for player", player_index, "at rotation:", laser_raycast.rotation)
+		# Visual feedback for firing
+	$Sprite.scale = Vector2(1.8, 1.8)  # Brief scaling effect
+	var recoil_tween = create_tween()
+	recoil_tween.tween_property($Sprite, "scale", Vector2(1.5, 1.5), 0.2)
 	
+	print("Firing laser - Position:", global_position, " Rotation:", laser_raycast.rotation)
+	laser_raycast.force_raycast_update()
 	# Check for collision
 	if laser_raycast.is_colliding():
 		var collision_point = to_local(laser_raycast.get_collision_point())
@@ -314,27 +278,44 @@ func fire_laser():
 		
 		var hit_object = laser_raycast.get_collider()
 		if hit_object is CharacterBody2D and hit_object != self:
+			print("Hit valid target:", hit_object.name)
 			if hit_object.has_method("take_damage"):
 				hit_object.take_damage(laser_damage)
+				print("Applied ", laser_damage, " damage to target")
 	else:
 		# No collision, draw to max range
 		var end_point = Vector2.RIGHT.rotated(laser_raycast.rotation) * laser_range
 		laser_line.add_point(end_point)
 		print("Laser missed, ending at:", end_point)
 	
-	# Make laser disappear after a short time
-	await get_tree().create_timer(0.1).timeout
+	# Make laser fade out instead of disappearing
+	var fade_tween = create_tween()
+	fade_tween.tween_property(laser_line, "modulate:a", 0.0, 0.3)
+	await fade_tween.finished
 	laser_line.clear_points()
+	laser_line.modulate.a = 1.0
 
 func take_damage(damage: int):
-	current_hp -= damage
-	if current_hp <= 0:
-		# We've been defeated
-		emit_signal("player_hit", player_index)  # This is where we emit the signal!
-
+	# No need for HP tracking
+	# var old_hp = current_hp
+	# current_hp -= damage
+	
+	# Visual feedback
+	var flash_tween = create_tween()
+	flash_tween.tween_property($Sprite, "modulate", Color.WHITE, 0.05)
+	flash_tween.tween_property($Sprite, "modulate", player_color, 0.05)
+	
+	# Add more visual juice
+	if JuiceManager:
+		JuiceManager.player_hit_effect(global_position, player_color)
+	
+	# Player was hit - emit signal immediately
+	print("Player ", player_index, " was hit!")
+	emit_signal("player_hit", player_index)
+	
 func _on_fire_cooldown_timeout():
 	can_fire = true
-
+	print("Player ", player_index, " laser cooldown complete - Can fire again")
 
 func _create_width_curve() -> Curve:
 	var curve = Curve.new()

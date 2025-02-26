@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://dkfo3hqt2tk1c"]
+
+[node name="DashParticles" type="Node2D"]

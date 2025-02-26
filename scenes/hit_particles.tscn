@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3 uid="uid://cvhsvgkj3bhe1"]
+
+[ext_resource type="Texture2D" uid="uid://dldea7k0kaba3" path="res://assets/sprites/hit_particle.png" id="1_x74yw"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_jo2lq"]
+particle_flag_align_y = true
+particle_flag_disable_z = true
+initial_velocity_min = 64.98
+initial_velocity_max = 101.08
+gravity = Vector3(0, 0, 0)
+damping_min = 100.0
+damping_max = 100.0
+
+[node name="HitParticles" type="GPUParticles2D"]
+texture_filter = 1
+emitting = false
+process_material = SubResource("ParticleProcessMaterial_jo2lq")
+texture = ExtResource("1_x74yw")
+one_shot = true
+speed_scale = 5.0
+explosiveness = 1.0

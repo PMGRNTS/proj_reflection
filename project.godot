@@ -21,6 +21,7 @@ boot_splash/minimum_display_time=200
 
 GameManager="*res://scripts/game_manager.gd"
 InputManager="*res://scripts/input_manager.gd"
+JuiceManager="*res://scripts/juice_manager.gd"
 
 [display]
 

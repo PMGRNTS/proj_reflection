@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=4 uid="uid://bpht8n8gbuh3e"]
+[gd_scene load_steps=12 format=4 uid="uid://bpht8n8gbuh3e"]
 
 [ext_resource type="PackedScene" uid="uid://dy3xmc8rtyi0x" path="res://scenes/player.tscn" id="1_c7wlg"]
 [ext_resource type="Script" path="res://scripts/players_manager.gd" id="3_lilgp"]
@@ -6,10 +6,8 @@
 [ext_resource type="Script" path="res://scripts/ui_manager.gd" id="5_h4h73"]
 [ext_resource type="Texture2D" uid="uid://c888n4w0cws7p" path="res://pomsplash_brown-export.png" id="6_cgbmx"]
 [ext_resource type="Texture2D" uid="uid://2brxsl6ipmxo" path="res://assets/sprites/HUD_border.png" id="6_vr7en"]
-[ext_resource type="Script" path="res://scenes/controls_display.gd" id="7_0rgq4"]
 [ext_resource type="PackedScene" uid="uid://cbrebhfxnyybx" path="res://scenes/base_button.tscn" id="7_3pwpa"]
 [ext_resource type="Script" path="res://scripts/main_menu.gd" id="7_ab3t6"]
-[ext_resource type="PackedScene" uid="uid://bj8c65t2bnxt5" path="res://scenes/base_label.tscn" id="7_ftedd"]
 [ext_resource type="PackedScene" uid="uid://ehnlewjlvqun" path="res://scenes/input_selection_menu.tscn" id="9_io0rg"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tkdd6"]
@@ -38,9 +36,41 @@ spawn_points = [NodePath("SpawnPoint1"), NodePath("SpawnPoint2")]
 
 [node name="Player" parent="World/Players" groups=["player"] instance=ExtResource("1_c7wlg")]
 position = Vector2(180, 156)
+player_color = null
+speed = null
+accel = null
+dash_speed = null
+dash_duration = null
+dash_cooldown_time = null
+dash_distance = null
+controller_aim_speed = null
+player_index = null
+trail_length = null
+trail_width = null
+trail_color = null
+shadow_color = null
+laser_range = null
+laser_damage = null
+fire_rate = null
 
 [node name="Player2" parent="World/Players" groups=["player"] instance=ExtResource("1_c7wlg")]
 position = Vector2(180, 156)
+player_color = null
+speed = null
+accel = null
+dash_speed = null
+dash_duration = null
+dash_cooldown_time = null
+dash_distance = null
+controller_aim_speed = null
+player_index = null
+trail_length = null
+trail_width = null
+trail_color = null
+shadow_color = null
+laser_range = null
+laser_damage = null
+fire_rate = null
 
 [node name="SpawnPoint1" type="Node2D" parent="World/Players"]
 position = Vector2(360, 160)
@@ -67,7 +97,6 @@ offset_bottom = 40.0
 texture = ExtResource("6_cgbmx")
 
 [node name="GameUI" type="Control" parent="UI"]
-texture_filter = 1
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -93,27 +122,11 @@ offset_right = 720.0
 offset_bottom = 40.0
 alignment = 1
 
-[node name="P1Score" parent="UI/GameUI/ScoreDisplay" instance=ExtResource("7_ftedd")]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.294118, 0.611765, 1, 1)
-theme_override_font_sizes/font_size = 45
-text = "0"
-
-[node name="HSeparator" type="HSeparator" parent="UI/GameUI/ScoreDisplay"]
-custom_minimum_size = Vector2(50, 0)
+[node name="P1Score" type="Label" parent="UI/GameUI/ScoreDisplay"]
 layout_mode = 2
 
-[node name="P2Score" parent="UI/GameUI/ScoreDisplay" instance=ExtResource("7_ftedd")]
+[node name="P2Score" type="Label" parent="UI/GameUI/ScoreDisplay"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.294118, 0.294118, 1)
-theme_override_font_sizes/font_size = 45
-text = "0"
-
-[node name="ControlsDisplay" type="Control" parent="UI/GameUI"]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-script = ExtResource("7_0rgq4")
 
 [node name="MainMenu" type="Control" parent="UI"]
 layout_mode = 3
