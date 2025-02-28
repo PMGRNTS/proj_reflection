@@ -5,10 +5,10 @@ signal player_hit(player_index: int)
 # Exported Variables
 @export var player_color := Color("4b9cff") # Default blue for P1
 
-@export var speed = 200
+@export var speed = 300
 @export var accel = 1300
-@export var dash_speed = 1200  # Reduced for better control
-@export var dash_duration = 0.2  # Increased slightly for more noticeable effect
+@export var dash_speed = 1500  # Reduced for better control
+@export var dash_duration = 0.15  # Increased slightly for more noticeable effect
 @export var dash_cooldown_time = 0.8  # Reduced to make dash feel more responsive
 @export var dash_distance := 200.0  # Increased to make dash more impactful
 @export var controller_aim_speed := 5.0  # Speed multiplier for controller aim rotation
@@ -20,6 +20,7 @@ signal player_hit(player_index: int)
 @export var laser_range := 1000.0
 @export var laser_damage := 35
 @export var fire_rate := 0.75  # Time between shots in seconds
+@export var reflect_duration := 0.7  # Increased duration to make reflection easier
 
 # Regular Variables
 var debug_ray_line: Line2D  # To visualize raycast direction
@@ -32,9 +33,8 @@ var dash_target := Vector2.ZERO
 var can_fire := true
 var time_passed := 0.0  # Used for our sine wave effect
 var trail_points: Array[Vector2] = []
-var laser_line: Line2D
-
 var hit_freeze_frames := 0
+var is_reflecting := false
 
 # Onready Variables (Node References)
 @onready var dash_dur = $DashDur
@@ -45,18 +45,6 @@ var hit_freeze_frames := 0
 @onready var fire_cooldown := $FireCooldown
 @onready var main_trail := $MainTrail
 @onready var shadow_trail := $ShadowTrail
-
-
-var input_suffix: String:
-	get:
-		# Change this from current version
-		# return "_p2" if player_index == 1 else ""
-		
-		# To explicitly set suffix when index changes
-		if player_index == 0:
-			return ""
-		else:
-			return "_p2"
 
 func _ready():
 	await get_tree().process_frame
@@ -69,7 +57,6 @@ func _ready():
 		player_color = Color("ff4b4b")  # P2 is red
 	
 	print("Player ", player_index, " initialized with index-specific settings")
-	print("Input suffix: ", input_suffix)
 	print("Player", player_index, "color set to:", player_color)
 	print("Available controllers: ", Input.get_connected_joypads())
 	
@@ -89,7 +76,7 @@ func _ready():
 	shadow_color = player_color.darkened(0.5)
 	shadow_color.a = 0.4
 	
-	# Previous initialization code
+	# Initialize trails
 	for i in trail_length:
 		trail_points.append(position)
 	
@@ -106,21 +93,18 @@ func _ready():
 	fire_cooldown.one_shot = true
 	fire_cooldown.timeout.connect(_on_fire_cooldown_timeout)
 	
-	# Setup laser line with player color
-	laser_line = Line2D.new()
-	add_child(laser_line)
-	laser_line.width = 6.0
-	laser_line.default_color = player_color  # Use player's color for laser
-	
 	# Setup raycast for laser
 	laser_raycast.target_position = Vector2.RIGHT * laser_range
 	laser_raycast.collision_mask = 1  # Adjust based on your collision layers
+	
+	# Initialize reflection state
+	reflect_area.get_node("Hitbox").disabled = true
+	reflect_area.get_node("Sprite").visible = false
 	
 	print("=== Player ", player_index, " Setup Complete ===")
 	print("Initial position:", global_position)
 	print("Initial look direction:", look_direction)
 	print("\n")
-	
 
 func _process(_delta):
 	time_passed += _delta * 10.0
@@ -157,6 +141,48 @@ func _process(_delta):
 		main_trail.default_color = trail_color
 		shadow_trail.default_color = shadow_color
 
+func _physics_process(delta: float) -> void:
+	if hit_freeze_frames > 0:
+		return
+		
+	if is_dashing:
+		# Use look_direction directly for consistent dash direction
+		velocity = look_direction * dash_speed
+		move_and_slide()
+		
+		var distance_to_target = global_position.distance_to(dash_target)
+		
+		if distance_to_target <= 5:
+			is_dashing = false
+			velocity = Vector2.ZERO
+			global_position = dash_target
+	else:
+		# Use the new input manager for movement
+		var raw_movement = InputManager.get_movement(player_index)
+		velocity = raw_movement * speed
+		move_and_slide()
+	
+	# Handle aim
+	var new_aim = InputManager.get_aim(player_index, global_position)
+	if new_aim.length_squared() > 0.04:  # Using squared length for efficiency
+		last_aim_direction = new_aim
+		look_direction = new_aim
+		var new_rotation = new_aim.angle()
+		reflect_area.rotation = new_rotation
+		laser_raycast.rotation = new_rotation  # Keep raycast aligned with aim direction
+
+	# Check for dash input
+	if InputManager.is_dash_pressed(player_index) and can_dash:
+		start_dash()
+	
+	# Check for fire input
+	if InputManager.is_fire_pressed(player_index) and can_fire:
+		fire_laser()
+	
+	# Check for reflect input
+	if InputManager.is_reflect_pressed(player_index) and not is_reflecting:
+		activate_reflect()
+
 func _setup_trails():
 	print("Setting up trails for Player ", player_index)
 	# Set up main white trail
@@ -187,56 +213,288 @@ func start_dash():
 		can_dash = false
 		dash_cooldown.start()
 		dash_dur.start()
+		
+		# Play dash sound
+		AudioManager.play_sound("dash")
 
-func _physics_process(delta: float) -> void:
-	if is_dashing:
-		# Use look_direction directly for consistent dash direction
-		velocity = look_direction * dash_speed
-		move_and_slide()
+func activate_reflect():
+	print("\n=== Player ", player_index, " Reflection Started ===")
+	print("Reflection rotation:", reflect_area.rotation)
+	print("Player position:", global_position)
+	is_reflecting = true
+	reflect_hitbox.disabled = false
+	reflect_area.get_node("Sprite").visible = true
+	
+	# Play reflection activation sound
+	AudioManager.play_sound("reflect_up")
+	
+	# Flash effect to indicate reflection
+	var flash_tween = create_tween()
+	flash_tween.tween_property($Sprite, "modulate", Color.WHITE, 0.1)
+	flash_tween.tween_property($Sprite, "modulate", player_color, 0.1)
+	
+	# Increase reflect duration for easier use
+	await get_tree().create_timer(reflect_duration).timeout
+	
+	reflect_hitbox.disabled = true
+	reflect_area.get_node("Sprite").visible = false
+	is_reflecting = false
+	print("Player ", player_index, " reflection ended")
+
+func fire_laser():
+	if !can_fire:
+		print("Player ", player_index, " attempted to fire but on cooldown")
+		return
 		
-		var distance_to_target = global_position.distance_to(dash_target)
-		print("Player ", player_index, " dashing - Distance to target:", distance_to_target, " Current velocity:", velocity)
+	print("\n=== Player ", player_index, " Firing Laser ===")
+	can_fire = false
+	fire_cooldown.start()
+	
+	# Play firing sound
+	AudioManager.play_sound("fire")
+	
+	# Visual feedback for firing
+	$Sprite.scale = Vector2(1.2, 1.2)  # Brief scaling effect
+	var recoil_tween = create_tween()
+	recoil_tween.tween_property($Sprite, "scale", Vector2(1.0, 1.0), 0.2)
+	# Create a new laser node in the world
+	var laser = Node2D.new()
+	get_tree().root.add_child(laser)
+	laser.global_position = global_position
+	laser.rotation = laser_raycast.global_rotation
+	
+	# Create a line for visualization
+	var line = Line2D.new()
+	laser.add_child(line)
+	line.width = 6.0
+	line.default_color = player_color
+	line.add_point(Vector2.ZERO)
+	
+	# Use the player's raycast for collision detection
+	print("Firing laser - Position:", global_position, " Rotation:", laser_raycast.rotation)
+	laser_raycast.force_raycast_update()
+	
+	# Check for collision
+	if laser_raycast.is_colliding():
+		var collision_point = laser_raycast.get_collision_point()
+		var laser_vector = collision_point - global_position
+		var laser_length = laser_vector.length()
 		
-		if distance_to_target <= 5:
-			print("Player ", player_index, " dash complete at position:", global_position)
-			is_dashing = false
-			velocity = Vector2.ZERO
-			global_position = dash_target
+		var hit_object = laser_raycast.get_collider()
+		
+		# Check if we hit a player
+		if hit_object is CharacterBody2D and hit_object != self:
+			# Check if the hit player is reflecting
+			if hit_object.is_reflecting:
+				print("Hit reflecting player! Redirecting laser!")
+				AudioManager.play_sound("reflect_catch")
+				# Calculate the exact reflection point
+				# Note: For body collisions, we need to find where the ray intersects the reflection area
+				
+				# First get reflecting player's reflection area
+				var reflecting_player = hit_object
+				var reflection_area = reflecting_player.reflect_area
+				
+				# Find the reflection area bounds - we'll use the player's position as an approximation
+				var reflection_point = collision_point
+				
+				# Visually stop the original laser at the reflection point
+				line.add_point(Vector2.RIGHT * laser_length)
+				
+				# Get the reflecting player's aim direction
+				var reflect_direction = reflecting_player.look_direction
+				
+				# Create a new reflected laser starting at the exact reflection point
+				var reflected_laser = Node2D.new()
+				get_tree().root.add_child(reflected_laser)
+				reflected_laser.global_position = reflection_point
+				
+				# Use the reflecting player's current aim direction
+				reflected_laser.rotation = reflecting_player.reflect_area.global_rotation
+				
+				# Create the reflected laser line with the ORIGINAL shooter's color
+				var reflected_line = Line2D.new()
+				reflected_laser.add_child(reflected_line)
+				reflected_line.width = 6.0
+				reflected_line.default_color = player_color  # Keep original laser color
+				reflected_line.add_point(Vector2.ZERO)
+				
+				# Create a raycast for the reflected laser
+				var reflected_raycast = RayCast2D.new()
+				reflected_laser.add_child(reflected_raycast)
+				reflected_raycast.target_position = Vector2.RIGHT * laser_range
+				reflected_raycast.collision_mask = 1
+				
+				# Wait one frame for raycast to initialize
+				await get_tree().process_frame
+				reflected_raycast.force_raycast_update()
+				
+				# Check for collision of reflected laser
+				if reflected_raycast.is_colliding():
+					var reflected_hit_point = reflected_raycast.get_collision_point()
+					var reflected_vector = reflected_hit_point - reflected_laser.global_position
+					var reflected_length = reflected_vector.length()
+					reflected_line.add_point(Vector2.RIGHT * reflected_length)
+					
+					var reflected_hit_object = reflected_raycast.get_collider()
+					if reflected_hit_object is CharacterBody2D and reflected_hit_object != reflecting_player:
+						print("Reflected laser hit:", reflected_hit_object.name)
+						if reflected_hit_object.has_method("take_damage"):
+							reflected_hit_object.take_damage(laser_damage)
+							print("Applied reflected damage to:", reflected_hit_object.name)
+				else:
+					# No collision, draw to max range
+					reflected_line.add_point(Vector2.RIGHT * laser_range)
+				
+				# Visual feedback for successful reflection
+				var reflection_flash = create_tween()
+				reflection_flash.tween_property(reflecting_player.get_node("Sprite"), "modulate", Color.WHITE, 0.1)
+				reflection_flash.tween_property(reflecting_player.get_node("Sprite"), "modulate", reflecting_player.player_color, 0.1)
+				
+				# Add a visual flash effect at the reflection point
+				var flash = ColorRect.new()
+				get_tree().root.add_child(flash)
+				flash.global_position = reflection_point - Vector2(10, 10)
+				flash.size = Vector2(20, 20)
+				flash.color = player_color.lightened(0.5)  # Use original laser's color
+				
+				var flash_tween = create_tween()
+				flash_tween.tween_property(flash, "modulate:a", 0.0, 0.2)
+				flash_tween.tween_callback(flash.queue_free)
+				
+				# Fade out the reflected laser
+				var reflected_tween = create_tween()
+				reflected_tween.tween_property(reflected_line, "modulate:a", 0.0, 0.5)
+				reflected_tween.tween_callback(reflected_laser.queue_free)
+				
+			else:
+				# Player wasn't reflecting, normal hit
+				line.add_point(Vector2.RIGHT * laser_length)
+				hit_object.take_damage(laser_damage)
+				print("Applied ", laser_damage, " damage to target")
+		
+		# Check if we hit a reflection area directly
+		elif hit_object is Area2D and "ReflectArea" in hit_object.name:
+			var reflection_area = hit_object
+			var reflecting_player = reflection_area.get_parent()
+			
+			if reflecting_player != self and reflecting_player is CharacterBody2D:  # Don't reflect our own laser
+				print("Direct hit on reflection area owned by:", reflecting_player.name)
+				
+				# Check if the reflection area is active
+				if not reflection_area.get_node("Hitbox").disabled:
+					print("Reflection area is active, reflecting laser")
+					
+					# Visually stop the original laser at the exact collision point
+					line.add_point(Vector2.RIGHT * laser_length)
+					
+					# Create a new reflected laser starting at the exact reflection point
+					var reflected_laser = Node2D.new()
+					get_tree().root.add_child(reflected_laser)
+					reflected_laser.global_position = collision_point
+					
+					# Use the reflecting player's current aim direction
+					reflected_laser.rotation = reflection_area.global_rotation
+					
+					# Create the reflected laser line with the ORIGINAL shooter's color
+					var reflected_line = Line2D.new()
+					reflected_laser.add_child(reflected_line)
+					reflected_line.width = 6.0
+					reflected_line.default_color = player_color  # Keep original laser color
+					reflected_line.add_point(Vector2.ZERO)
+					
+					# Create a raycast for the reflected laser
+					var reflected_raycast = RayCast2D.new()
+					reflected_laser.add_child(reflected_raycast)
+					reflected_raycast.target_position = Vector2.RIGHT * laser_range
+					reflected_raycast.collision_mask = 1
+					
+					# Wait one frame for raycast to initialize
+					await get_tree().process_frame
+					reflected_raycast.force_raycast_update()
+					
+					# Check for collision of reflected laser
+					if reflected_raycast.is_colliding():
+						var reflected_hit_point = reflected_raycast.get_collision_point()
+						var reflected_vector = reflected_hit_point - reflected_laser.global_position
+						var reflected_length = reflected_vector.length()
+						reflected_line.add_point(Vector2.RIGHT * reflected_length)
+						
+						var reflected_hit_object = reflected_raycast.get_collider()
+						if reflected_hit_object is CharacterBody2D and reflected_hit_object != reflecting_player:
+							print("Reflected laser hit:", reflected_hit_object.name)
+							AudioManager.play_sound("hit_reflected")
+							if reflected_hit_object.has_method("take_damage"):
+								reflected_hit_object.take_damage(laser_damage)
+								print("Applied reflected damage to:", reflected_hit_object.name)
+					else:
+						# No collision, draw to max range
+						reflected_line.add_point(Vector2.RIGHT * laser_range)
+					
+					# Visual feedback for successful reflection
+					var reflection_flash = create_tween()
+					reflection_flash.tween_property(reflecting_player.get_node("Sprite"), "modulate", Color.WHITE, 0.1)
+					reflection_flash.tween_property(reflecting_player.get_node("Sprite"), "modulate", reflecting_player.player_color, 0.1)
+					
+					# Add a visual flash effect at the reflection point
+					var flash = ColorRect.new()
+					get_tree().root.add_child(flash)
+					flash.global_position = collision_point - Vector2(10, 10)
+					flash.size = Vector2(20, 20)
+					flash.color = player_color.lightened(0.5)  # Use original laser's color
+					
+					var flash_tween = create_tween()
+					flash_tween.tween_property(flash, "modulate:a", 0.0, 0.2)
+					flash_tween.tween_callback(flash.queue_free)
+					
+					# Fade out the reflected laser
+					var reflected_tween = create_tween()
+					reflected_tween.tween_property(reflected_line, "modulate:a", 0.0, 0.5)
+					reflected_tween.tween_callback(reflected_laser.queue_free)
+				else:
+					# Regular hit on inactive reflection area, just draw the laser
+					line.add_point(Vector2.RIGHT * laser_length)
+			else:
+				# Regular hit on something else, just draw the laser
+				line.add_point(Vector2.RIGHT * laser_length)
+		else:
+			# Regular hit on something else, just draw the laser
+			line.add_point(Vector2.RIGHT * laser_length)
 	else:
-		# Handle regular movement
-		var raw_movement = InputManager.get_movement(player_index)
-		velocity = raw_movement * speed
-		move_and_slide()
+		# No collision, draw to max range
+		var end_point = Vector2.RIGHT * laser_range
+		line.add_point(end_point)
+		print("Laser missed, ending at max range")
 	
-	var new_aim = InputManager.get_aim(player_index, global_position)
-	if new_aim.length_squared() > 0.04:  # Using squared length for efficiency
-		last_aim_direction = new_aim
-		look_direction = new_aim
-		var new_rotation = new_aim.angle()
-		reflect_area.rotation = new_rotation
-		laser_raycast.rotation = new_rotation  # Keep raycast aligned with aim direction
-		#print("Player ", player_index, " aim updated - Direction:", new_aim, " Rotation:", new_rotation)
+	# Fade out the original laser
+	var fade_tween = create_tween()
+	fade_tween.tween_property(line, "modulate:a", 0.0, 0.5)
+	fade_tween.tween_callback(laser.queue_free)
 
-	# Check for dash input
-	if InputManager.is_dash_pressed(player_index) and can_dash:
-		start_dash()
+func take_damage(damage: int):
+	# Don't take damage if reflecting
+	if is_reflecting:
+		print("Player ", player_index, " is reflecting and blocked damage!")
+		return
+		
+	# Visual feedback
+	var flash_tween = create_tween()
+	flash_tween.tween_property($Sprite, "modulate", Color.WHITE, 0.05)
+	flash_tween.tween_property($Sprite, "modulate", player_color, 0.05)
 	
-
-func _input(event: InputEvent) -> void:
-	# Handle non-movement input events
-	if event.is_action_pressed("reflect" + input_suffix):
-		print("\n=== Player ", player_index, " Reflection Started ===")
-		print("Reflection rotation:", reflect_area.rotation)
-		print("Player position:", global_position)
-		$ReflectArea/Hitbox.disabled = false
-		$ReflectArea/Sprite.visible = true
-		await get_tree().create_timer(0.2).timeout
-		$ReflectArea/Hitbox.disabled = true
-		$ReflectArea/Sprite.visible = false
-		print("Player ", player_index, " reflection ended")
-	elif event.is_action_pressed("fire" + input_suffix):
-		print("\n=== Player ", player_index, " Fire Attempt ===")
-		fire_laser()
+	# Play hit sound - we'll determine if it was from a reflected laser elsewhere
+	AudioManager.play_sound("hit_normal")
+	
+	# Add more visual juice
+	if JuiceManager:
+		JuiceManager.player_hit_effect(global_position, player_color)
+	# Player was hit - emit signal immediately
+	print("Player ", player_index, " was hit!")
+	emit_signal("player_hit", player_index)
+	
+func _on_fire_cooldown_timeout():
+	can_fire = true
+	print("Player ", player_index, " laser cooldown complete - Can fire again")
 
 func _on_dash_cooldown_timeout():
 	can_dash = true
@@ -248,74 +506,6 @@ func _on_dash_dur_timeout() -> void:
 		is_dashing = false
 		velocity = Vector2.ZERO
 		print("Player ", player_index, " dash duration ended")
-
-func fire_laser():
-	if !can_fire:
-		print("Player ", player_index, " attempted to fire but on cooldown")
-		return
-		
-	print("\n=== Player ", player_index, " Firing Laser ===")
-	can_fire = false
-	fire_cooldown.start()
-	
-	# Update raycast direction and visualize it
-	#laser_raycast.rotation = reflect_area.rotation
-	laser_line.clear_points()
-	laser_line.add_point(Vector2.ZERO)
-	
-		# Visual feedback for firing
-	$Sprite.scale = Vector2(1.8, 1.8)  # Brief scaling effect
-	var recoil_tween = create_tween()
-	recoil_tween.tween_property($Sprite, "scale", Vector2(1.5, 1.5), 0.2)
-	
-	print("Firing laser - Position:", global_position, " Rotation:", laser_raycast.rotation)
-	laser_raycast.force_raycast_update()
-	# Check for collision
-	if laser_raycast.is_colliding():
-		var collision_point = to_local(laser_raycast.get_collision_point())
-		laser_line.add_point(collision_point)
-		print("Laser hit at:", collision_point)
-		
-		var hit_object = laser_raycast.get_collider()
-		if hit_object is CharacterBody2D and hit_object != self:
-			print("Hit valid target:", hit_object.name)
-			if hit_object.has_method("take_damage"):
-				hit_object.take_damage(laser_damage)
-				print("Applied ", laser_damage, " damage to target")
-	else:
-		# No collision, draw to max range
-		var end_point = Vector2.RIGHT.rotated(laser_raycast.rotation) * laser_range
-		laser_line.add_point(end_point)
-		print("Laser missed, ending at:", end_point)
-	
-	# Make laser fade out instead of disappearing
-	var fade_tween = create_tween()
-	fade_tween.tween_property(laser_line, "modulate:a", 0.0, 0.3)
-	await fade_tween.finished
-	laser_line.clear_points()
-	laser_line.modulate.a = 1.0
-
-func take_damage(damage: int):
-	# No need for HP tracking
-	# var old_hp = current_hp
-	# current_hp -= damage
-	
-	# Visual feedback
-	var flash_tween = create_tween()
-	flash_tween.tween_property($Sprite, "modulate", Color.WHITE, 0.05)
-	flash_tween.tween_property($Sprite, "modulate", player_color, 0.05)
-	
-	# Add more visual juice
-	if JuiceManager:
-		JuiceManager.player_hit_effect(global_position, player_color)
-	
-	# Player was hit - emit signal immediately
-	print("Player ", player_index, " was hit!")
-	emit_signal("player_hit", player_index)
-	
-func _on_fire_cooldown_timeout():
-	can_fire = true
-	print("Player ", player_index, " laser cooldown complete - Can fire again")
 
 func _create_width_curve() -> Curve:
 	var curve = Curve.new()

@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://d10qc8johrw6b"
-path="res://.godot/imported/parry1.wav-956e1cd0597d1ad501a67009adec9382.sample"
+uid="uid://df601dawhoiah"
+path="res://.godot/imported/bip-1.wav-0b90c3e4eceac8ef5e7bcdc76dc8c539.sample"
 
 [deps]
 
-source_file="res://assets/audio/parry1.wav"
-dest_files=["res://.godot/imported/parry1.wav-956e1cd0597d1ad501a67009adec9382.sample"]
+source_file="res://assets/sounds/bip-1.wav"
+dest_files=["res://.godot/imported/bip-1.wav-0b90c3e4eceac8ef5e7bcdc76dc8c539.sample"]
 
 [params]
 

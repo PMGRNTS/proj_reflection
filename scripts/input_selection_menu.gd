@@ -27,7 +27,7 @@ func _ready():
 		
 	print("All nodes found successfully!")
 	
-	# Set up signals
+	# Connect the button signals
 	p1_toggle.state_changed.connect(
 		func(state): _on_toggle_changed(1, state))
 	p2_toggle.state_changed.connect(
@@ -37,23 +37,32 @@ func _ready():
 	# Set initial states
 	p1_toggle.set_state("keyboard")
 	p2_toggle.set_state("controller")
+	
+	# Check available controllers
+	var connected_controllers = Input.get_connected_joypads()
+	print("Available controllers for input selection: ", connected_controllers)
+	
+	# Warning if insufficient controllers
+	if connected_controllers.size() < 1 and (p1_toggle.get_state() == "controller" or p2_toggle.get_state() == "controller"):
+		print("WARNING: Controller selected but no controllers detected!")
 
 func _on_toggle_changed(player: int, state: String):
-	if state == "keyboard":
-		if player == 1:
-			p2_toggle.set_state("controller")
-		else:
-			p1_toggle.set_state("controller")
+	# No need to enforce specific restrictions anymore
+	# Our new input system handles the keyboard schemes appropriately
+	print("Player ", player, " input changed to: ", state)
+	
+	# Check if both players selected controller but only one is available
+	var connected_controllers = Input.get_connected_joypads()
+	if state == "controller" and p1_toggle.get_state() == "controller" and p2_toggle.get_state() == "controller" and connected_controllers.size() < 2:
+		print("WARNING: Both players selected controller but only ", connected_controllers.size(), " controllers available")
 
 func confirm_selection():
 	print("Confirming selection")
-	print("P1 using keyboard:", p1_toggle.get_state() == "keyboard")
-	print("P2 using keyboard:", p2_toggle.get_state() == "keyboard")
-	emit_signal("inputs_selected", 
-		p1_toggle.get_state() == "keyboard",
-		p2_toggle.get_state() == "keyboard")
+	var p1_using_keyboard = p1_toggle.get_state() == "keyboard"
+	var p2_using_keyboard = p2_toggle.get_state() == "keyboard"
+	
+	print("P1 using keyboard:", p1_using_keyboard)
+	print("P2 using keyboard:", p2_using_keyboard)
+	
+	emit_signal("inputs_selected", p1_using_keyboard, p2_using_keyboard)
 	hide()
-
-
-func _on_confirm_pressed() -> void:
-	pass # Replace with function body.

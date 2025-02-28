@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://cwqv435ww4ch5"
-path="res://.godot/imported/knock.wav-310d14f4f09918c1ffd34788da9be3dd.sample"
+uid="uid://ddatpfyxu4nrr"
+path="res://.godot/imported/reflect_up.wav-bf6b8b17f90ec5818ccd4c13118cee5d.sample"
 
 [deps]
 
-source_file="res://assets/audio/knock.wav"
-dest_files=["res://.godot/imported/knock.wav-310d14f4f09918c1ffd34788da9be3dd.sample"]
+source_file="res://assets/sounds/reflect_up.wav"
+dest_files=["res://.godot/imported/reflect_up.wav-bf6b8b17f90ec5818ccd4c13118cee5d.sample"]
 
 [params]
 

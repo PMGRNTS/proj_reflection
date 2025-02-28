@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://d2dx8i3mcylvr"
-path="res://.godot/imported/whip_back.wav-8dcdac3e84c0d790b6468720d11eb590.sample"
+uid="uid://bi4qi82vqrksu"
+path="res://.godot/imported/chip.wav-06ef973171944b933e298df4fc3eec82.sample"
 
 [deps]
 
-source_file="res://assets/audio/whip_back.wav"
-dest_files=["res://.godot/imported/whip_back.wav-8dcdac3e84c0d790b6468720d11eb590.sample"]
+source_file="res://assets/sounds/chip.wav"
+dest_files=["res://.godot/imported/chip.wav-06ef973171944b933e298df4fc3eec82.sample"]
 
 [params]
 

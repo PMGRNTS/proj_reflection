@@ -77,18 +77,33 @@ func start_game() -> void:
 	print("  Current scene:", current_scene_name)
 	print("  Player scores reset:", player_scores)
 	
-	#Initialize input preferences
+	# Initialize input preferences with our new InputManager system
 	print("\nRegistering player input devices:")
+	
+	# Player 1 setup
 	InputManager.register_player(
 		0, 
 		InputManager.InputDevice.KEYBOARD if p1_using_keyboard else InputManager.InputDevice.CONTROLLER,
-		0 if not p1_using_keyboard else -1
+		-1 if p1_using_keyboard else 0  # Use first controller if P1 uses controller
 	)
+	
+	# Player 2 setup - Use controller 1 if available, otherwise controller 0 if P1 isn't using it
+	var p2_controller_id = -1
+	if not p2_using_keyboard:
+		var connected_controllers = Input.get_connected_joypads()
+		if connected_controllers.size() > 1:
+			p2_controller_id = 1  # Use second controller if available
+		elif not p1_using_keyboard:
+			print("WARNING: Both players configured for controllers but only one detected")
+			print("P2 will use keyboard with arrow keys")
+			p2_using_keyboard = true
+		else:
+			p2_controller_id = 0  # Use first controller
 	
 	InputManager.register_player(
 		1,
 		InputManager.InputDevice.KEYBOARD if p2_using_keyboard else InputManager.InputDevice.CONTROLLER,
-		0 if not p2_using_keyboard else -1
+		p2_controller_id
 	)
 	
 	# Reset players to starting positions
@@ -105,14 +120,15 @@ func start_game() -> void:
 	tween.set_trans(Tween.TRANS_CUBIC)
 	tween.set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(hud_border, "scale", Vector2(1.0, 1.0), 0.5)
+	tween.parallel().tween_property(hud_border, "modulate:a", 1.0, 0.5)
 	
 	await tween.finished
 	print("HUD animation complete")
 	emit_signal("game_started")
 	print("=== Game Start Complete ===\n")
-
-		# Show controls briefly
-	var controls_display = get_tree().root.get_node("Main/UI/GameUI/ControlsDisplay")
+	
+	# Show controls briefly
+	var controls_display = get_tree().root.get_node_or_null("Main/UI/GameUI/ControlsDisplay")
 	if controls_display:
 		controls_display.show_controls()
 		
