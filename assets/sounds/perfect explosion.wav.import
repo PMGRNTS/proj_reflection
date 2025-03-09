@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://ckmdjw88mtxak"
+path="res://.godot/imported/perfect explosion.wav-5834322d2e55b1c76b290e50fb0e2f5e.sample"
+
+[deps]
+
+source_file="res://assets/sounds/perfect explosion.wav"
+dest_files=["res://.godot/imported/perfect explosion.wav-5834322d2e55b1c76b290e50fb0e2f5e.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=0

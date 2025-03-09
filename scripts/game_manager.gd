@@ -57,6 +57,12 @@ func _ready():
 	print("=== Game Manager Initialization Complete ===\n")
 
 
+func _process(delta: float) -> void:
+	if Input.is_action_just_pressed("ui_cancel") and current_scene_name == "game":
+		return_to_main_menu()
+
+
+
 func start_game() -> void:
 	print("\n=== Starting New Game ===")
 	print("Input Settings:")
@@ -131,7 +137,37 @@ func start_game() -> void:
 	var controls_display = get_tree().root.get_node_or_null("Main/UI/GameUI/ControlsDisplay")
 	if controls_display:
 		controls_display.show_controls()
+	
+	if has_node("/root/SettingsManager"):
+		var settings = SettingsManager.gameplay_settings
 		
+		# Find players and apply settings
+		var player1 = players_manager.get_node("Player")
+		var player2 = players_manager.get_node("Player2")
+		
+		# Apply dash settings
+		if player1:
+			player1.dash_cooldown_time = settings.dash_cooldown
+			player1.reflect_duration = settings.reflect_duration
+			player1.fire_rate = settings.fire_cooldown
+			
+			# Update timers with new values
+			player1.dash_cooldown.wait_time = settings.dash_cooldown
+			player1.fire_cooldown.wait_time = settings.fire_cooldown
+		
+		if player2:
+			player2.dash_cooldown_time = settings.dash_cooldown
+			player2.reflect_duration = settings.reflect_duration
+			player2.fire_rate = settings.fire_cooldown
+			
+			# Update timers with new values
+			player2.dash_cooldown.wait_time = settings.dash_cooldown
+			player2.fire_cooldown.wait_time = settings.fire_cooldown
+			
+		print("Applied gameplay settings to players")
+		
+		
+	
 func _show_loading_screen() -> void:
 	print("\n=== Showing Loading Screen ===")
 	loading_screen.show()
@@ -210,9 +246,23 @@ func _on_player_hit(player_index: int):
 	tween.tween_property(flash, "color:a", 0.0, 0.5)
 	tween.tween_callback(flash.queue_free)
 	
+	## Play an additional impact sound that works during pause
+	## This takes advantage of the "process while paused" feature
+	#var impact_sound = AudioStreamPlayer.new()
+	#impact_sound.stream = load("res://assets/sounds/hit_impact_heavy.wav") # Create this sound
+	#impact_sound.volume_db = 5.0  # Make it loud
+	#impact_sound.pitch_scale = 0.8  # Lower pitch for more impact
+	#impact_sound.process_mode = Node.PROCESS_MODE_ALWAYS  # Will play during pause
+	#game_ui.add_child(impact_sound)
+	#impact_sound.play()
+	
+	## Clean up sound when finished
+	#await impact_sound.finished
+	#impact_sound.queue_free()
+	#
 	# Pause briefly to emphasize the hit
 	get_tree().paused = true
-	await get_tree().create_timer(1.0, true).timeout  # true = process while paused
+	await get_tree().create_timer(1.0, true).timeout
 	get_tree().paused = false
 	
 	# Reset players to starting positions
@@ -276,3 +326,22 @@ func update_score_display():
 	if p1_score_label and p2_score_label:
 		p1_score_label.text = str(player_scores[0])
 		p2_score_label.text = str(player_scores[1])
+
+
+func return_to_main_menu() -> void:
+	print("\n=== Returning to Main Menu ===")
+	
+	# Reset game state
+	is_game_paused = false
+	get_tree().paused = false
+	
+	# Reset scores
+	player_scores = [0, 0]
+	
+	# Remove circular wall if it exists
+	if circular_wall:
+		circular_wall.queue_free()
+	
+	# Return to menu
+	_show_main_menu()
+	print("=== Return to Main Menu Complete ===\n")

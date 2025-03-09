@@ -1,0 +1,84 @@
+[gd_scene load_steps=5 format=3 uid="uid://6esu77kj8ju6"]
+
+[ext_resource type="FontFile" uid="uid://b86rai83r06cu" path="res://fonts/DisposableDroidBB.ttf" id="1_614ho"]
+[ext_resource type="Script" path="res://scripts/volume_slider.gd" id="1_a0xkf"]
+[ext_resource type="Script" path="res://scripts/settings_menu.gd" id="1_setyl"]
+[ext_resource type="PackedScene" uid="uid://cbrebhfxnyybx" path="res://scenes/base_button.tscn" id="2_he3j4"]
+
+[node name="SettingsMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_setyl")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="AudioSettings" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MasterVolumeSlider" type="Control" parent="MarginContainer/VBoxContainer/AudioSettings"]
+layout_mode = 2
+script = ExtResource("1_a0xkf")
+label = "Master"
+
+[node name="SFXVolumeSlider" type="Control" parent="MarginContainer/VBoxContainer/AudioSettings"]
+layout_mode = 2
+script = ExtResource("1_a0xkf")
+label = "SFX"
+
+[node name="UIVolumeSlider" type="Control" parent="MarginContainer/VBoxContainer/AudioSettings"]
+layout_mode = 2
+script = ExtResource("1_a0xkf")
+label = "UI"
+
+[node name="PlayerSettings" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FireCooldown" type="SpinBox" parent="MarginContainer/VBoxContainer/PlayerSettings"]
+layout_mode = 2
+alignment = 1
+
+[node name="DashCooldown" type="SpinBox" parent="MarginContainer/VBoxContainer/PlayerSettings"]
+layout_mode = 2
+alignment = 1
+
+[node name="ReflectDuration" type="SpinBox" parent="MarginContainer/VBoxContainer/PlayerSettings"]
+layout_mode = 2
+alignment = 1
+
+[node name="VideoSettings" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FullscreenToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/VideoSettings"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("1_614ho")
+theme_override_font_sizes/font_size = 18
+text = "Fullscreen"
+flat = true
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SaveButton" parent="MarginContainer/VBoxContainer/ButtonsContainer" instance=ExtResource("2_he3j4")]
+layout_mode = 2
+text = "SAVE"
+
+[node name="CancelButton" parent="MarginContainer/VBoxContainer/ButtonsContainer" instance=ExtResource("2_he3j4")]
+layout_mode = 2
+text = "cancel"

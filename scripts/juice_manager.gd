@@ -17,7 +17,7 @@ func _ready():
 	
 	# Since you mentioned minimal visuals, let's comment out particle effects
 	# until you create the necessary scenes
-	# hit_particles_scene = preload("res://scenes/hit_particles.tscn")
+	hit_particles_scene = preload("res://scenes/hit_particles.tscn")
 	# dash_particles_scene = preload("res://scenes/dash_particles.tscn")
 
 func find_camera():
@@ -65,7 +65,7 @@ func player_hit_effect(hit_position: Vector2, player_color: Color):
 	tween.tween_callback(flash.queue_free)
 	
 	# Screen shake - will only work if camera exists
-	screen_shake(5.0, 0.2)
+	screen_shake(100.0, 0.2)
 	
 	# Particles - only if the scene exists
 	if hit_particles_scene:
@@ -83,12 +83,38 @@ func spawn_particles(position: Vector2, color: Color, particles_scene, direction
 		
 	var particles = particles_scene.instantiate()
 	particles.position = position
-	particles.modulate = color
 	
-	# Make sure the process_material exists
-	if direction != Vector2.ZERO and particles.has_method("get_process_material"):
-		var material = particles.get_process_material()
-		if material and material.has_property("direction"):
-			material.direction = Vector3(direction.x, direction.y, 0)
+	# Only apply color modulation for dash particles, not hit particles
+	if particles_scene != hit_particles_scene:
+		particles.modulate = color
+	
+	# Apply random rotation to hit particles
+	if particles_scene == hit_particles_scene:
+		particles.rotation = randf() * 2 * PI  # Random angle between 0 and 2π (0-360°)
+	
+	# For AnimatedSprite2D
+	if particles is AnimatedSprite2D:
+		particles.play("hit_flash_anim")
+		#particles.process_mode = Node.PROCESS_MODE_ALWAYS
+		
+		# Make hits more dynamic with random scaling
+		#var scale_factor = randf_range(1.0, 1.8)
+		#particles.scale = Vector  2(scale_factor, scale_factor)
+		
+		# Create a tween for better visual effects
+		var tween = create_tween()
+		# Scale up quickly on impact
+		tween.tween_property(particles, "scale", particles.scale * 1.5, 0.1)
+		# Then scale back down and fade out
+		tween.tween_property(particles, "scale", particles.scale * 0.8, 0.2)
+		tween.parallel().tween_property(particles, "modulate:a", 0.0, 0.3)
+		
+		# Still queue free after animation is done
+		particles.animation_finished.connect(particles.queue_free)
 			
 	get_tree().root.add_child(particles)
+	
+	
+	
+	
+	

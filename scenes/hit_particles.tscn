@@ -1,21 +1,31 @@
-[gd_scene load_steps=3 format=3 uid="uid://cvhsvgkj3bhe1"]
+[gd_scene load_steps=5 format=3 uid="uid://cvhsvgkj3bhe1"]
 
-[ext_resource type="Texture2D" uid="uid://dldea7k0kaba3" path="res://assets/sprites/hit_particle.png" id="1_x74yw"]
+[ext_resource type="Texture2D" uid="uid://dldea7k0kaba3" path="res://assets/sprites/hit_particle.png" id="1_i607u"]
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_jo2lq"]
-particle_flag_align_y = true
-particle_flag_disable_z = true
-initial_velocity_min = 64.98
-initial_velocity_max = 101.08
-gravity = Vector3(0, 0, 0)
-damping_min = 100.0
-damping_max = 100.0
+[sub_resource type="AtlasTexture" id="AtlasTexture_b5orn"]
+atlas = ExtResource("1_i607u")
+region = Rect2(0, 0, 192, 192)
 
-[node name="HitParticles" type="GPUParticles2D"]
-texture_filter = 1
-emitting = false
-process_material = SubResource("ParticleProcessMaterial_jo2lq")
-texture = ExtResource("1_x74yw")
-one_shot = true
-speed_scale = 5.0
-explosiveness = 1.0
+[sub_resource type="AtlasTexture" id="AtlasTexture_o1ihe"]
+atlas = ExtResource("1_i607u")
+region = Rect2(192, 0, 192, 192)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_yk01p"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b5orn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o1ihe")
+}],
+"loop": false,
+"name": &"hit_flash_anim",
+"speed": 8.0
+}]
+
+[node name="HitParticles" type="AnimatedSprite2D"]
+texture_filter = 2
+scale = Vector2(0.4, 0.4)
+sprite_frames = SubResource("SpriteFrames_yk01p")
+animation = &"hit_flash_anim"

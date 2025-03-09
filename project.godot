@@ -23,6 +23,7 @@ GameManager="*res://scripts/game_manager.gd"
 InputManager="*res://scripts/input_manager.gd"
 JuiceManager="*res://scripts/juice_manager.gd"
 AudioManager="*res://scripts/audio_manager.gd"
+SettingsManager="*res://scripts/settings_manager.gd"
 
 [display]
 

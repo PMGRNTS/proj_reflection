@@ -17,7 +17,8 @@ var sounds = {
 	"reflect_catch": preload("res://assets/sounds/reflect_catch.wav"),
 	"hit_normal": preload("res://assets/sounds/hit_normal.wav"),
 	"hit_reflected": preload("res://assets/sounds/hit_reflected.wav"),
-	
+	"hit_impact": preload("res://assets/sounds/hit_impact.wav"), # Add a chunky impact sound
+	"hit_boom": preload("res://assets/sounds/hit_boom.wav"),  
 	# UI sounds - you can add these later
 	"button_click": null,
 	"menu_open": null,
@@ -88,3 +89,14 @@ func play_sound_at_position(sound_name: String, position: Vector2) -> void:
 		# Remove player when sound finished
 		await player.finished
 		player.queue_free()
+		
+# Add a new function for layered hit sounds
+func play_hit_impact(position: Vector2, is_reflected: bool = false):
+	# Play the base hit sound
+	play_sound("hit_reflected" if is_reflected else "hit_normal")
+	
+	# Layer a chunky impact sound with slight pitch variation
+	var impact = play_sound("hit_impact")
+	if impact:
+		impact.volume_db += 2.0  # Make it slightly louder
+	# #

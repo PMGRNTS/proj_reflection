@@ -7,14 +7,13 @@ signal player_hit(player_index: int)
 
 @export var speed = 300
 @export var accel = 1300
-@export var dash_speed = 1500  # Reduced for better control
-@export var dash_duration = 0.15  # Increased slightly for more noticeable effect
+@export var dash_speed = 6000  # Reduced for better control
+@export var dash_duration = 0.05  # Increased slightly for more noticeable effect
 @export var dash_cooldown_time = 0.8  # Reduced to make dash feel more responsive
 @export var dash_distance := 200.0  # Increased to make dash more impactful
-@export var controller_aim_speed := 5.0  # Speed multiplier for controller aim rotation
 @export var player_index := 0  # 0 for P1, 1 for P2
 @export var trail_length := 20  # More points = longer trail
-@export var trail_width := 15.0
+@export var trail_width := 24.0
 @export var trail_color := Color(0.9, 0.9, 1.0, 0.8)  # Slightly transparent white
 @export var shadow_color := Color(0.2, 0.4, 0.8, 0.4)  # Ethereal blue shadow
 @export var laser_range := 1000.0
@@ -60,13 +59,13 @@ func _ready():
 	print("Player", player_index, "color set to:", player_color)
 	print("Available controllers: ", Input.get_connected_joypads())
 	
-	# Add debug raycast line
+	# Add debug raycast line || THIS BASICALLY BECAUSE A PIECE OF THE HUD
 	debug_ray_line = Line2D.new()
 	add_child(debug_ray_line)
-	debug_ray_line.width = 1.0
-	debug_ray_line.default_color = Color.YELLOW
-	debug_ray_line.add_point(Vector2.ZERO)
-	debug_ray_line.add_point(Vector2(50, 0))  # Shows aim direction
+	debug_ray_line.width = 2.0
+	debug_ray_line.default_color = Color.FLORAL_WHITE
+	debug_ray_line.add_point(Vector2(40,0))
+	debug_ray_line.add_point(Vector2(60, 0))  # Shows aim direction
 	
 	# Now set up visual elements with the correct color
 	$Sprite.modulate = player_color
@@ -127,7 +126,7 @@ func _process(_delta):
 		var local_point = to_local(point)
 		main_trail.add_point(local_point)
 		# Offset shadow trail slightly based on movement
-		shadow_trail.add_point(local_point + velocity.normalized() * -4)
+		shadow_trail.add_point(local_point + velocity.normalized() * -9)#-4
 		
 	# Make trails more pronounced during dash
 	if is_dashing:
@@ -253,10 +252,14 @@ func fire_laser():
 	# Play firing sound
 	AudioManager.play_sound("fire")
 	
-	# Visual feedback for firing
-	$Sprite.scale = Vector2(1.2, 1.2)  # Brief scaling effect
+	# Store original scale for recoil effect
+	var original_scale = $Sprite.scale
+	
+	# Visual feedback for firing - scale up slightly
+	$Sprite.scale = original_scale * 1.2  # 20% bigger for recoil
 	var recoil_tween = create_tween()
-	recoil_tween.tween_property($Sprite, "scale", Vector2(1.0, 1.0), 0.2)
+	recoil_tween.tween_property($Sprite, "scale", original_scale, 0.2)  # Return to original
+	
 	# Create a new laser node in the world
 	var laser = Node2D.new()
 	get_tree().root.add_child(laser)
@@ -482,12 +485,16 @@ func take_damage(damage: int):
 	flash_tween.tween_property($Sprite, "modulate", Color.WHITE, 0.05)
 	flash_tween.tween_property($Sprite, "modulate", player_color, 0.05)
 	
-	# Play hit sound - we'll determine if it was from a reflected laser elsewhere
-	AudioManager.play_sound("hit_normal")
+	# Use the enhanced layered sound system
+	AudioManager.play_hit_impact(global_position)
+	
+	# Add hit freeze frames for local player effect
+	hit_freeze_frames = 5  # Adjust number as needed
 	
 	# Add more visual juice
 	if JuiceManager:
 		JuiceManager.player_hit_effect(global_position, player_color)
+		
 	# Player was hit - emit signal immediately
 	print("Player ", player_index, " was hit!")
 	emit_signal("player_hit", player_index)
